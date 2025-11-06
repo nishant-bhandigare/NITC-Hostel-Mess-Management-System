@@ -1,5 +1,7 @@
 import React from "react";
 import { Home, Utensils, Star, ClipboardList, ReceiptIndianRupee, Settings, LogOut } from "lucide-react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const NAV = [
   { icon: Home, label: "Dashboard" },
@@ -10,6 +12,33 @@ const NAV = [
 ];
 
 export default function Sidebar({ open, onClose }) {
+  const navigate =useNavigate();
+  const handleLogout = async () => {
+    const token=localStorage.getItem('token')
+    try {
+      // Backend logout request
+      await axios.post(
+      `${import.meta.env.VITE_SERVER_URL}/api/auth/logout`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ send token
+        },
+        withCredentials: true, // if CORS needs cookies too
+      }
+    );
+
+      // Clear local storage
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+
+      alert("You have been logged out successfully!");
+      navigate("/signin");
+    } catch (error) {
+      console.error("Logout Error:", error);
+      alert("Failed to log out. Please try again.");
+    }
+  };
   return (
     <>
       {/* Backdrop */}
@@ -42,7 +71,7 @@ export default function Sidebar({ open, onClose }) {
               <Settings className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium">Settings</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent/70 text-left">
+            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent/70 text-left" onClick={handleLogout}>
               <LogOut className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium">Logout</span>
             </button>

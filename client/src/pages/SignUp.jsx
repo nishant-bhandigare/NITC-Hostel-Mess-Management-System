@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function SignUp() {
@@ -7,7 +8,7 @@ export default function SignUp() {
     name: "",
     email: "",
     password: "",
-    role: "Student",
+    role: "student", // must match backend expectation (lowercase)
     registrationNumber: "",
     hostelId: "",
     messId: "",
@@ -16,25 +17,48 @@ export default function SignUp() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("User Registered:", form);
-    alert("✅ Account created successfully!");
-    navigate("/signin");
+
+    try {
+      // ✅ Make POST request to backend API
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/register`,
+        form,
+        { withCredentials: true } // include credentials if cookies are used
+      );
+
+      console.log("Registration Response:", response.data);
+
+      if (response.data.success) {
+        alert("✅ Account created successfully!");
+        navigate("/signin");
+      } else {
+        alert(response.data.message || "Registration failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Registration Error:", error);
+      alert(
+        error.response?.data?.message ||
+          "Could not connect to server. Please try again later."
+      );
+    }
   };
 
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-
         {/* Left: Form */}
         <div className="p-8 sm:p-12 overflow-y-auto">
-          {/* Brand */}
           <div className="mb-10 flex items-center gap-3">
-            <img src="/src/assets/logo.png" alt="NITC Mess" className="h-8 w-8 object-contain" />
+            <img
+              src="/src/assets/logo.png"
+              alt="NITC Mess"
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-lg font-semibold tracking-tight text-neutral-800">
               NITC Mess
             </span>
@@ -46,7 +70,6 @@ export default function SignUp() {
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-
             {/* Full Name */}
             <div>
               <label className="text-sm text-neutral-700">Full Name</label>
@@ -88,21 +111,25 @@ export default function SignUp() {
               />
             </div>
 
-            {/* Role - Radio Buttons */}
+            {/* Role */}
             <div>
               <label className="text-sm text-neutral-700">Select Role</label>
               <div className="flex items-center gap-4 mt-2 text-sm">
-                {["Student", "Mess Manager", "Hostel Admin"].map((r) => (
-                  <label key={r} className="flex items-center gap-2">
+                {[
+                  { label: "Student", value: "student" },
+                  { label: "Mess Manager", value: "manager" },
+                  { label: "Hostel Admin", value: "admin" },
+                ].map((r) => (
+                  <label key={r.value} className="flex items-center gap-2">
                     <input
                       type="radio"
                       name="role"
-                      value={r}
-                      checked={form.role === r}
+                      value={r.value}
+                      checked={form.role === r.value}
                       onChange={handleChange}
                       className="text-blue-600 focus:ring-blue-600"
                     />
-                    {r}
+                    {r.label}
                   </label>
                 ))}
               </div>
@@ -110,7 +137,9 @@ export default function SignUp() {
 
             {/* Registration Number */}
             <div>
-              <label className="text-sm text-neutral-700">Registration Number</label>
+              <label className="text-sm text-neutral-700">
+                Registration Number
+              </label>
               <input
                 name="registrationNumber"
                 type="text"
@@ -175,13 +204,16 @@ export default function SignUp() {
 
           <p className="text-sm text-neutral-600 mt-6">
             Already have an account?{" "}
-            <Link to="/signin" className="text-blue-700 font-medium hover:underline">
+            <Link
+              to="/signin"
+              className="text-blue-700 font-medium hover:underline"
+            >
               Sign In
             </Link>
           </p>
         </div>
 
-        {/* Right: Image / Illustration Panel */}
+        {/* Right: Illustration */}
         <div className="hidden lg:block relative">
           <img
             src="/src/assets/login-illustration.png"
@@ -190,7 +222,6 @@ export default function SignUp() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/15 via-indigo-600/15 to-purple-600/15 rounded-r-2xl"></div>
         </div>
-
       </div>
     </div>
   );
