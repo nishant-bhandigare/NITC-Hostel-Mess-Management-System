@@ -1,13 +1,23 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import loginImg from "../assets/login-illustration.png";
 
 export default function SignIn() {
-  const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
 
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    remember: true,
+  });
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -16,7 +26,10 @@ export default function SignIn() {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/api/auth/login`,
-        form,
+        {
+          email: form.email,
+          password: form.password,
+        },
         { withCredentials: true }
       );
 
@@ -26,7 +39,13 @@ export default function SignIn() {
         alert("Login successful!");
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("token", response.data.token);
-        navigate("/student"); // redirect to student dashboard
+
+        // Redirect based on role
+        const role = response.data.user.role;
+        if (role === "student") navigate("/student");
+        else if (role === "manager") navigate("/manager");
+        else if (role === "admin") navigate("/admin");
+        else navigate("/");
       } else {
         alert(response.data.message || "Login failed!");
       }
@@ -41,44 +60,111 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8 border border-neutral-200">
-        <h1 className="text-2xl font-bold text-center mb-6">NITC Mess Login</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded-lg px-3 py-2"
-              placeholder="Enter your email"
-              required
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        {/* Left: Form */}
+        <div className="p-8 sm:p-12">
+          {/* Brand */}
+          <div className="mb-10 flex items-center gap-3">
+            <img
+              src="/src/assets/logo.png"
+              alt="NITC Mess"
+              className="h-8 w-8 object-contain"
             />
+            <span className="text-lg font-semibold tracking-tight text-neutral-800">
+              NITC Mess
+            </span>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              className="mt-1 w-full border rounded-lg px-3 py-2"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Sign In
-          </button>
-        </form>
+
+          <h1 className="text-4xl font-bold tracking-tight">Welcome Back</h1>
+          <p className="text-neutral-600 mt-2">
+            Please sign in to continue.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="text-sm text-neutral-700"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@nitc.ac.in"
+                className="mt-1 w-full rounded-xl border border-neutral-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="text-sm text-neutral-700"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-neutral-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  name="remember"
+                  checked={form.remember}
+                  onChange={handleChange}
+                  className="rounded border-neutral-300 text-blue-600 focus:ring-blue-600"
+                />
+                Remember me
+              </label>
+              <Link
+                to="#"
+                className="text-sm text-blue-700 hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 transition"
+            >
+              Sign In
+            </button>
+          </form>
+
+          <p className="text-sm text-neutral-600 mt-6">
+            Don’t have an account?{" "}
+            <span
+              onClick={() => navigate("/signup")}
+              className="text-blue-700 font-medium hover:underline cursor-pointer"
+            >
+              Sign Up
+            </span>
+          </p>
+        </div>
+
+        {/* Right: Illustration panel */}
+        <div className="hidden lg:block relative">
+          <img
+            src={loginImg}
+            alt="Login"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/20 to-purple-600/20"></div>
+        </div>
       </div>
     </div>
   );
