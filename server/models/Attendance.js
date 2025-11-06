@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 
-// Sub-schema for individual meal attendance
+// =======================
+// SUB-SCHEMA
+// =======================
 const MealAttendanceSchema = new mongoose.Schema(
   {
     mealType: {
@@ -25,7 +27,9 @@ const MealAttendanceSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Main Attendance Schema
+// =======================
+// MAIN SCHEMA
+// =======================
 const AttendanceSchema = new mongoose.Schema(
   {
     studentId: {
@@ -47,7 +51,6 @@ const AttendanceSchema = new mongoose.Schema(
     dayOfWeek: {
       type: String,
       enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      // REMOVED: required: true (since it's auto-calculated)
     },
     meals: {
       type: [MealAttendanceSchema],
@@ -94,65 +97,62 @@ const AttendanceSchema = new mongoose.Schema(
       trim: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Compound indexes for better query performance
+// =======================
+// INDEXES
+// =======================
 AttendanceSchema.index({ studentId: 1, date: 1 }, { unique: true });
 AttendanceSchema.index({ messId: 1, date: 1 });
 AttendanceSchema.index({ studentId: 1, date: 1, messId: 1 });
 AttendanceSchema.index({ date: 1, isOnLeave: 1 });
 
-// Pre-save middleware to calculate meal counts and set day of week
+// =======================
+// MIDDLEWARES
+// =======================
 AttendanceSchema.pre('save', function (next) {
-  // Set day of week from date
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   this.dayOfWeek = days[new Date(this.date).getDay()];
-  
-  // Calculate meal counts
+
   if (this.isOnLeave) {
     this.totalMealsPresent = 0;
     this.totalMealsAbsent = 4;
     this.meals = [];
   } else {
-    this.totalMealsPresent = this.meals.filter((meal) => meal.isPresent).length;
-    this.totalMealsAbsent = this.meals.filter((meal) => !meal.isPresent).length;
+    this.totalMealsPresent = this.meals.filter((m) => m.isPresent).length;
+    this.totalMealsAbsent = this.meals.filter((m) => !m.isPresent).length;
   }
-  
+
   next();
 });
 
-// Validate leave dates
 AttendanceSchema.pre('save', function (next) {
-  if (this.isOnLeave && this.leaveStartDate && this.leaveEndDate) {
-    if (this.leaveEndDate < this.leaveStartDate) {
-      next(new Error('Leave end date must be after start date'));
-    }
+  if (this.isOnLeave && this.leaveStartDate && this.leaveEndDate && this.leaveEndDate < this.leaveStartDate) {
+    return next(new Error('Leave end date must be after start date'));
   }
   next();
 });
 
-// Method to mark attendance for a specific meal
+// =======================
+// METHODS
+// =======================
 AttendanceSchema.methods.markMealAttendance = function (mealType, isPresent, markedBy = 'student') {
-  const existingMeal = this.meals.find((meal) => meal.mealType === mealType);
-  
-  if (existingMeal) {
-    existingMeal.isPresent = isPresent;
-    existingMeal.markedAt = new Date();
-    existingMeal.markedBy = markedBy;
+  const existing = this.meals.find((m) => m.mealType === mealType);
+  if (existing) {
+    existing.isPresent = isPresent;
+    existing.markedAt = new Date();
+    existing.markedBy = markedBy;
   } else {
-    this.meals.push({
-      mealType,
-      isPresent,
-      markedAt: new Date(),
-      markedBy,
-    });
+    this.meals.push({ mealType, isPresent, markedAt: new Date(), markedBy });
   }
 };
 
-// Static method to get attendance for a student in a date range
+// =======================
+// STATIC METHODS
+// =======================
+
+// 1️⃣ Date range attendance
 AttendanceSchema.statics.getAttendanceByDateRange = async function (studentId, startDate, endDate) {
   return await this.find({
     studentId,
@@ -160,11 +160,10 @@ AttendanceSchema.statics.getAttendanceByDateRange = async function (studentId, s
   }).sort({ date: 1 });
 };
 
-// Static method to get monthly attendance for a student
+// 2️⃣ Monthly attendance
 AttendanceSchema.statics.getMonthlyAttendance = async function (studentId, month, year) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
-  
   return await this.find({
     studentId,
     date: { $gte: startDate, $lte: endDate },
@@ -173,33 +172,28 @@ AttendanceSchema.statics.getMonthlyAttendance = async function (studentId, month
     .populate('studentId', 'name email registrationNumber');
 };
 
-// Static method to get attendance summary for billing
+// 3️⃣ Monthly summary
 AttendanceSchema.statics.getAttendanceSummary = async function (studentId, month, year) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
-  
-  const attendanceRecords = await this.find({
+  const records = await this.find({
     studentId,
     date: { $gte: startDate, $lte: endDate },
   });
-  
-  let totalDays = 0;
-  let presentDays = 0;
-  let absentDays = 0;
-  let totalMealsPresent = 0;
-  let totalMealsAbsent = 0;
-  
-  attendanceRecords.forEach((record) => {
-    totalDays++;
-    if (record.isOnLeave || record.totalMealsPresent === 0) {
-      absentDays++;
-    } else {
-      presentDays++;
-    }
-    totalMealsPresent += record.totalMealsPresent;
-    totalMealsAbsent += record.totalMealsAbsent;
+
+  let totalDays = records.length;
+  let presentDays = 0,
+    absentDays = 0,
+    totalMealsPresent = 0,
+    totalMealsAbsent = 0;
+
+  records.forEach((r) => {
+    if (r.isOnLeave || r.totalMealsPresent === 0) absentDays++;
+    else presentDays++;
+    totalMealsPresent += r.totalMealsPresent;
+    totalMealsAbsent += r.totalMealsAbsent;
   });
-  
+
   return {
     totalDays,
     presentDays,
@@ -210,52 +204,94 @@ AttendanceSchema.statics.getAttendanceSummary = async function (studentId, month
   };
 };
 
-// Static method to register leave for multiple days
-AttendanceSchema.statics.registerLeave = async function (studentId, messId, startDate, endDate, reason, description) {
-  const attendanceRecords = [];
+// 4️⃣ Improved leave registration with overlap validation
+AttendanceSchema.statics.registerLeave = async function (
+  studentId,
+  messId,
+  startDate,
+  endDate,
+  reason,
+  description
+) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  
-  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-    const existingAttendance = await this.findOne({
-      studentId,
-      date: new Date(date),
-    });
-    
-    if (existingAttendance) {
-      existingAttendance.isOnLeave = true;
-      existingAttendance.leaveReason = reason;
-      existingAttendance.leaveDescription = description;
-      existingAttendance.leaveStartDate = startDate;
-      existingAttendance.leaveEndDate = endDate;
-      await existingAttendance.save();
-      attendanceRecords.push(existingAttendance);
-    } else {
-      const newAttendance = await this.create({
+
+  // 1️⃣ Basic range check
+  if (end < start) {
+    throw new Error("Leave end date must be after start date");
+  }
+
+  // 2️⃣ Find overlapping leave records
+  const overlaps = await this.find({
+    studentId,
+    isOnLeave: true,
+    $or: [
+      { leaveStartDate: { $lte: end }, leaveEndDate: { $gte: start } },
+      { date: { $gte: start, $lte: end } },
+    ],
+  });
+
+  if (overlaps.length > 0) {
+    const overlapDates = overlaps.map((r) => r.date.toDateString());
+    throw new Error(`Overlapping leave already exists on: ${overlapDates.join(", ")}`);
+  }
+
+  // 3️⃣ Prevent duplicate single-day leaves
+  const duplicate = await this.find({
+    studentId,
+    isOnLeave: true,
+    date: { $gte: start, $lte: end },
+  });
+
+  if (duplicate.length > 0) {
+    const dupDates = duplicate.map((r) => r.date.toDateString());
+    throw new Error(`Leave already registered for: ${dupDates.join(", ")}`);
+  }
+
+  // 4️⃣ Create new leave records safely (no shared reference mutation)
+  const attendanceRecords = [];
+  for (
+    let d = new Date(start.getTime());
+    d <= end;
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+  ) {
+    const dateOnly = new Date(d);
+    dateOnly.setHours(0, 0, 0, 0);
+
+    const existing = await this.findOne({ studentId, date: dateOnly });
+    if (existing && existing.isOnLeave) {
+      throw new Error(`Leave already marked for ${dateOnly.toDateString()}`);
+    }
+
+    const record =
+      existing ||
+      new this({
         studentId,
         messId,
-        date: new Date(date),
-        isOnLeave: true,
-        leaveReason: reason,
-        leaveDescription: description,
-        leaveStartDate: startDate,
-        leaveEndDate: endDate,
+        date: dateOnly,
       });
-      attendanceRecords.push(newAttendance);
-    }
+
+    record.isOnLeave = true;
+    record.leaveReason = reason;
+    record.leaveDescription = description;
+    record.leaveStartDate = start;
+    record.leaveEndDate = end;
+
+    await record.save();
+    attendanceRecords.push(record);
   }
-  
+
   return attendanceRecords;
 };
 
-// Static method to get mess-wise attendance for a date
+
+
+// 5️⃣ Mess-wise attendance
 AttendanceSchema.statics.getMessAttendance = async function (messId, date) {
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
-  
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
-  
   return await this.find({
     messId,
     date: { $gte: startOfDay, $lte: endOfDay },

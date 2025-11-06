@@ -7,6 +7,7 @@ import {
   publishMenu,
   deleteMenu,
   getAllMenusForMess,
+  getPreviousMenu,
 } from '../controllers/menuController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { authorize } from '../middleware/roleMiddleware.js';
@@ -25,5 +26,10 @@ router.delete('/:id', protect, authorize('manager', 'admin'), deleteMenu);
 
 // Protected routes - All authenticated users
 router.get('/mess/:messId', protect, getAllMenusForMess);
+router.get(
+  '/previous/:messId',
+  getPreviousMenu
+);
+
 
 export default router;

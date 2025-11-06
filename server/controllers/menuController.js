@@ -287,3 +287,45 @@ export const getAllMenusForMess = async (req, res) => {
     });
   }
 };
+
+// @desc    Get previous week's published menu for a mess
+// @route   GET /api/menu/previous/:messId
+// @access  Public (Manager/Admin)
+export const getPreviousMenu = async (req, res) => {
+  try {
+    const { messId } = req.params;
+
+    const today = new Date();
+    const lastWeekEnd = new Date(today);
+    lastWeekEnd.setDate(today.getDate() - 7);
+
+    // Find the most recent published menu before this week
+    const previousMenu = await Menu.findOne({
+      messId,
+      weekEndDate: { $lte: today },
+      status: 'published',
+      isActive: true,
+    })
+      .sort({ weekEndDate: -1 })
+      .populate('createdBy', 'name email');
+
+    if (!previousMenu) {
+      return res.status(404).json({
+        success: false,
+        message: 'No previous menu found for this mess',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: previousMenu,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching previous menu',
+      error: error.message,
+    });
+  }
+};
