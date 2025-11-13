@@ -7,6 +7,7 @@ import {
   publishMenu,
   deleteMenu,
   getAllMenusForMess,
+  getPreviousMenu,
 } from '../controllers/menuController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { authorize } from '../middleware/roleMiddleware.js';
@@ -15,7 +16,9 @@ const router = express.Router();
 
 // Public routes
 router.get('/current/:messId', getCurrentMenu);
+router.get('/previous/:messId', getPreviousMenu);
 router.get('/date/:messId/:date', getMenuByDate);
+
 
 // Protected routes - Manager only
 router.post('/', protect, authorize('manager', 'admin'), createMenu);
@@ -25,5 +28,7 @@ router.delete('/:id', protect, authorize('manager', 'admin'), deleteMenu);
 
 // Protected routes - All authenticated users
 router.get('/mess/:messId', protect, getAllMenusForMess);
+
+
 
 export default router;

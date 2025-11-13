@@ -108,8 +108,8 @@ export default function PayPendingBills() {
               </div>
 
               <button
-                disabled={selected.length === 0}
-                onClick={() => navigate("/pay-now")}
+                disabled={selected.length === 0}     
+                onClick={() =>  navigate("/pay-now", {state: { amount: totalAmount.toFixed(2), selectedBills: selected },  })}
                 className={`px-6 py-3 rounded-lg text-white text-sm font-medium transition ${
                   selected.length === 0
                     ? "bg-gray-400 cursor-not-allowed"

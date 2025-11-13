@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import loginImg from "../assets/login-illustration.png";
+import MyLogo from "../assets/logo.png";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -55,7 +57,7 @@ export default function SignUp() {
         <div className="p-8 sm:p-12 overflow-y-auto">
           <div className="mb-10 flex items-center gap-3">
             <img
-              src="/src/assets/logo.png"
+              src={MyLogo}
               alt="NITC Mess"
               className="h-8 w-8 object-contain"
             />
@@ -117,8 +119,6 @@ export default function SignUp() {
               <div className="flex items-center gap-4 mt-2 text-sm">
                 {[
                   { label: "Student", value: "student" },
-                  { label: "Mess Manager", value: "manager" },
-                  { label: "Hostel Admin", value: "admin" },
                 ].map((r) => (
                   <label key={r.value} className="flex items-center gap-2">
                     <input
@@ -216,7 +216,7 @@ export default function SignUp() {
         {/* Right: Illustration */}
         <div className="hidden lg:block relative">
           <img
-            src="/src/assets/login-illustration.png"
+            src={loginImg} 
             alt="Sign Up Illustration"
             className="absolute inset-0 w-full h-full object-cover rounded-r-2xl"
           />
@@ -226,3 +226,4 @@ export default function SignUp() {
     </div>
   );
 }
+

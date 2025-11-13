@@ -1,96 +1,277 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar2.jsx";
+import StatBadge from "../components/StatBadge.jsx";
+import { Star, Users, TrendingUp, MessageSquare } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import axios from "axios";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-export default function FeedbackReports() {
+export default function FeedbackAnalytics() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState({ mealWiseRatings: [] });
+  const [commentsData, setCommentsData] = useState({});
+  const [loadingComments, setLoadingComments] = useState(false);
 
-  const [reportType, setReportType] = useState("monthly");
-  const [month, setMonth] = useState("");
-  const [weekStart, setWeekStart] = useState("");
+  const now = new Date();
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [month, setMonth] = useState(defaultMonth);
 
-  const handleGenerate = () => {
-    if (reportType === "monthly" && !month) {
-      alert("Please select a month to generate the report.");
-      return;
+  // Get readable month-year name
+  const [year, monthNum] = month.split("-").map(Number);
+  const monthName = new Date(year, monthNum - 1).toLocaleString("default", { month: "long" });
+
+  // Fetch analytics
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const [yearStr, monthStr] = month.split("-");
+        const year = parseInt(yearStr, 10);
+        const m = parseInt(monthStr, 10);
+
+        const response = await axios.get(
+          `${import.meta.env.VITE_SERVER_URL}/api/feedback/statistics?month=${m}&year=${year}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setAnalytics(response.data.data);
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+        alert("Failed to load analytics data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, [month]);
+
+  // Fetch comments for all meals
+  useEffect(() => {
+    const fetchAllComments = async () => {
+      try {
+        setLoadingComments(true);
+        const token = localStorage.getItem("token");
+        const [yearStr, monthStr] = month.split("-");
+        const year = parseInt(yearStr, 10);
+        const m = parseInt(monthStr, 10);
+        const start = new Date(year, m - 1, 1).toISOString();
+        const end = new Date(year, m, 0).toISOString();
+
+        const mealTypes = ["breakfast", "lunch", "eveningSnacks", "dinner"];
+        const results = {};
+
+        await Promise.all(
+          mealTypes.map(async (meal) => {
+            const res = await axios.get(
+              `${import.meta.env.VITE_SERVER_URL}/api/feedback/mess?mealType=${meal}&startDate=${start}&endDate=${end}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            results[meal] = res.data.data.filter((f) => f.comments?.trim());
+          })
+        );
+
+        setCommentsData(results);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+        alert("Failed to load comments");
+      } finally {
+        setLoadingComments(false);
+      }
+    };
+
+    fetchAllComments();
+  }, [month]);
+
+  // Derived values
+  const overallAverage = analytics.mealWiseRatings.length
+    ? (
+        analytics.mealWiseRatings.reduce((sum, meal) => sum + meal.avgRating, 0) /
+        analytics.mealWiseRatings.length
+      ).toFixed(2)
+    : "0.00";
+
+  const totalFeedbacks = analytics.mealWiseRatings.reduce((sum, meal) => sum + meal.count, 0);
+
+  const highestRatedMeal = analytics.mealWiseRatings.reduce(
+    (highest, current) =>
+      !highest || current.avgRating > highest.avgRating ? current : highest,
+    null
+  );
+
+  const chartData = analytics.mealWiseRatings.map((meal) => ({
+    name: meal._id.charAt(0).toUpperCase() + meal._id.slice(1),
+    rating: Number(meal.avgRating.toFixed(2)),
+    count: meal.count,
+  }));
+
+  // PDF Export
+  const handleDownloadPDF = async () => {
+    try {
+      const el = document.getElementById("feedback-analytics-root");
+      if (!el) return alert("Analytics area not found");
+
+      const canvas = await html2canvas(el, { scale: 2 });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`feedback-analytics-${month}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      alert("Failed to generate PDF");
     }
-    if (reportType === "weekly" && !weekStart) {
-      alert("Please select a week start date.");
-      return;
-    }
-
-    // Placeholder for backend call
-    alert(`✅ ${reportType === "monthly" ? `Monthly report for ${month}` : `Weekly report starting ${weekStart}`} generated!`);
   };
 
+  if (loading)
+    return <div className="h-screen flex items-center justify-center">Loading analytics...</div>;
+
   return (
-    <div className="min-h-screen font-sans">
+    <div className="min-h-screen font-sans bg-neutral-50">
       <Navbar onOpenSidebar={() => setSidebarOpen(true)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="container-narrow py-10">
-        
+      <main id="feedback-analytics-root" className="container-narrow py-10 px-4">
         {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Feedback Reports</h1>
-          <p className="text-neutral-600 mt-1">
-            Download monthly or weekly feedback reports.
-          </p>
-        </header>
-
-        {/* Content Card */}
-        <section className="bg-white border p-6 rounded-xl shadow-sm w-full max-w-2xl">
-          
-          {/* Report Type */}
-          <div className="mb-5">
-            <label className="text-sm font-medium text-neutral-700">Select Report Type</label>
-            <select
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-              className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600"
-            >
-              <option value="monthly">Monthly Report</option>
-              <option value="weekly">Weekly Report</option>
-            </select>
+        <header className="mb-8 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Feedback Reports</h1>
+            <p className="text-neutral-600 mt-1">
+              Feedback summary for <span className="font-semibold">{monthName} {year}</span>.
+            </p>
           </div>
 
-          {/* Month Selector */}
-          {reportType === "monthly" && (
-            <div className="mb-5">
-              <label className="text-sm font-medium text-neutral-700">Select Month</label>
-              <input
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600"
-              />
+          <div className="ml-auto flex items-center gap-3">
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="border px-3 py-2 rounded-md bg-white shadow-sm"
+            />
+            <button
+              onClick={handleDownloadPDF}
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+            >
+              Download PDF
+            </button>
+          </div>
+        </header>
+
+        {/* Top Stats */}
+        <section className="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-10">
+          <StatBadge label="Average Rating" value={overallAverage} icon={<Star className="h-5 w-5" />} />
+          <StatBadge label="Total Feedback" value={totalFeedbacks} icon={<Users className="h-5 w-5" />} />
+          <StatBadge
+            label="Top Rated Meal"
+            value={highestRatedMeal ? `${highestRatedMeal._id} (${highestRatedMeal.avgRating.toFixed(2)})` : "N/A"}
+            icon={<TrendingUp className="h-5 w-5" />}
+          />
+          <StatBadge
+            label="Total Comments"
+            value={Object.values(commentsData).flat().length}
+            icon={<MessageSquare className="h-5 w-5" />}
+          />
+        </section>
+
+        {/* Average Rating Chart */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold mb-4">Average Rating per Meal</h2>
+          <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis domain={[0, 5]} />
+                  <Tooltip />
+                  <Bar dataKey="rating" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        {/* Feedback Volume Chart */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold mb-4">Feedback Count per Meal</h2>
+          <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        {/* Meals + Comments */}
+        <section>
+          <h2 className="text-xl font-semibold mb-6">Meal Feedback Details</h2>
+          {loadingComments ? (
+            <p className="text-center text-neutral-500">Loading comments...</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {analytics.mealWiseRatings.map((meal) => (
+                <div key={meal._id} className="bg-white border border-neutral-200 rounded-xl p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-semibold text-blue-700 capitalize">
+                      {meal._id}
+                    </h3>
+                    <div className="flex items-center gap-1 text-yellow-500">
+                      {[...Array(Math.round(meal.avgRating))].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-yellow-500" />
+                      ))}
+                      <span className="text-neutral-700 font-medium ml-2">
+                        {meal.avgRating.toFixed(2)} / 5
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-neutral-500 mb-4">
+                    {meal.count} feedback entries this month
+                  </p>
+
+                  <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                    {(commentsData[meal._id] || []).length > 0 ? (
+                      commentsData[meal._id].map((feedback, idx) => (
+                        <div key={idx} className="border border-neutral-200 rounded-md p-3 bg-neutral-50">
+                          <p className="text-sm text-neutral-700">{feedback.comments}</p>
+                          <div className="text-xs text-neutral-500 mt-1">
+                            {new Date(feedback.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-neutral-500 italic">No comments yet.</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          {/* Week Selector */}
-          {reportType === "weekly" && (
-            <div className="mb-5">
-              <label className="text-sm font-medium text-neutral-700">Select Week Start Date</label>
-              <input
-                type="date"
-                value={weekStart}
-                onChange={(e) => setWeekStart(e.target.value)}
-                className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600"
-              />
-              <p className="text-xs text-neutral-500 mt-1">
-                The report will include the 7 days starting from this date.
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={handleGenerate}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2 rounded-lg mt-4"
-          >
-            Generate Report
-          </button>
         </section>
       </main>
     </div>
   );
 }
+

@@ -74,6 +74,7 @@ export const register = async (req, res) => {
       contactNumber,
     });
 
+
     // Generate token
     const token = generateToken(user._id);
 
@@ -107,6 +108,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(email,password);
 
     // Validate input
     if (!email || !password) {
@@ -118,6 +120,7 @@ export const login = async (req, res) => {
 
     // Find user with password field
     const user = await User.findOne({ email }).select('+password');
+    console.log(user);
 
     if (!user) {
       return res.status(401).json({
@@ -148,19 +151,20 @@ export const login = async (req, res) => {
     const token = generateToken(user._id);
 
     res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        registrationNumber: user.registrationNumber,
-        hostelId: user.hostelId,
-        messId: user.messId,
-      },
-      token,
-    });
+  success: true,
+  message: 'Login successful',
+  user: {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    registrationNumber: user.registrationNumber,
+    hostelId: user.hostelId,
+    messId: user.messId,
+  },
+  token,
+});
+
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -171,6 +175,25 @@ export const login = async (req, res) => {
   }
 };
 
+export const getStudentsCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments({ role: 'student', isActive: true });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalStudents: count,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching students count',
+      error: error.message,
+    });
+  }
+};
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
@@ -197,14 +220,24 @@ export const getMe = async (req, res) => {
 // @access  Private
 export const logout = async (req, res) => {
   try {
-    res.status(200).json({
+    // If you’re using cookies for JWT
+    res.cookie("token", "", {
+      httpOnly: true,
+      expires: new Date(0), // expires immediately
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return res.status(200).json({
       success: true,
-      message: 'Logged out successfully',
+      message: "Logged out successfully",
     });
   } catch (error) {
+    console.error("Logout error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error during logout',
+      message: "Server error during logout",
     });
   }
 };
+

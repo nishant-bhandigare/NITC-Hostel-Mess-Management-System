@@ -6,7 +6,7 @@ import {
   getMyAttendance,
   registerLeave,
   cancelLeave,
-  // markPresent,   <-- removed
+  
 } from "../api/attendanceAPI.js";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -36,7 +36,7 @@ export default function Attendance() {
     return n;
   };
 
-  // ✅ Fetch attendance history from backend
+  //  Fetch attendance history from backend
   const fetchAttendance = async () => {
     try {
       setLoading(true);
@@ -57,7 +57,7 @@ export default function Attendance() {
     fetchAttendance();
   }, []);
 
-  // ✅ Handle leave form submission
+  //  Handle leave form submission
   const handleSubmitLeave = async (e) => {
     e.preventDefault();
     try {
@@ -77,7 +77,7 @@ export default function Attendance() {
     }
   };
 
-  // ✅ Cancel leave action
+  //  Cancel leave action
   const handleCancelLeave = async (attendanceId) => {
     if (!confirm("Are you sure you want to cancel this leave?")) return;
     try {
@@ -270,3 +270,4 @@ export default function Attendance() {
     </div>
   );
 }
+

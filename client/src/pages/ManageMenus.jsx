@@ -17,7 +17,7 @@ export default function ManageMenus() {
   const token = localStorage.getItem("token");
   const messId = storedUser?.messId;
 
-  // 🧩 Format backend menu into form
+  //   backend menu into form
   const formatMenu = (menuData) => {
     const formatted = {};
     menuData.dailyMenus.forEach((dayMenu) => {
@@ -30,13 +30,13 @@ export default function ManageMenus() {
     return formatted;
   };
 
-  // 🟢 Fetch menus and load current/previous
+  //  Fetch menus and load current/previous
   useEffect(() => {
     const fetchMenus = async () => {
       try {
         setLoading(true);
         const res = await axios.get(
-          `http://localhost:5000/api/menu/mess/${messId}`,
+          `${import.meta.env.VITE_SERVER_URL}/api/menu/mess/${messId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setMenus(res.data.data);
@@ -68,7 +68,7 @@ export default function ManageMenus() {
     const fetchPreviousMenu = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/menu/previous/${messId}`,
+          `${import.meta.env.VITE_SERVER_URL}/api/menu/previous/${messId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setWeeklyMenu(formatMenu(response.data.data));
@@ -96,7 +96,7 @@ export default function ManageMenus() {
     });
   };
 
-  // 🧩 Save or update menu
+  //  Save or update menu
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -135,13 +135,13 @@ export default function ManageMenus() {
 
       if (currentMenu && currentMenu.status === "draft") {
         await axios.put(
-          `http://localhost:5000/api/menu/${currentMenu._id}`,
+          `${import.meta.env.VITE_SERVER_URL}/api/menu/${currentMenu._id}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         alert("✅ Weekly menu updated!");
       } else {
-        await axios.post("http://localhost:5000/api/menu", payload, {
+        await axios.post("${import.meta.env.VITE_SERVER_URL}/api/menu", payload, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -165,7 +165,7 @@ export default function ManageMenus() {
   const handlePublish = async (menuId) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/menu/${menuId}/publish`,
+        `${import.meta.env.VITE_SERVER_URL}/api/menu/${menuId}/publish`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -254,7 +254,7 @@ export default function ManageMenus() {
           </PrimaryButton>
         </div>
 
-        {/* 🧩 All Menus List */}
+        {/*  All Menus List */}
         <section className="mt-12">
           <h2 className="text-2xl font-bold mb-4">All Menus</h2>
           {menus.length === 0 ? (
@@ -320,3 +320,5 @@ export default function ManageMenus() {
     </div>
   );
 }
+
+

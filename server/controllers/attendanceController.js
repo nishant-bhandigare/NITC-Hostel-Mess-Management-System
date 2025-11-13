@@ -4,95 +4,90 @@ import User from '../models/User.js';
 // @desc    Mark daily attendance (create/update)
 // @route   POST /api/attendance
 // @access  Private (Student)
-export const markAttendance = async (req, res) => {
-  try {
-    const { date, meals, isOnLeave, leaveReason, leaveDescription } = req.body;
-    const studentId = req.user._id;
-    const messId = req.user.messId;
+// export const markAttendance = async (req, res) => {
+//   try {
+//     const { date, meals, isOnLeave, leaveReason, leaveDescription } = req.body;
+//     const studentId = req.user._id;
+//     const messId = req.user.messId;
 
-    // Parse date to start of day
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+//     // Parse date to start of day
+//     const attendanceDate = new Date(date);
+//     attendanceDate.setHours(0, 0, 0, 0);
 
-    // Check if attendance already exists for this date
-    let attendance = await Attendance.findOne({
-      studentId,
-      date: attendanceDate,
-    });
+//     // Check if attendance already exists for this date
+//     let attendance = await Attendance.findOne({
+//       studentId,
+//       date: attendanceDate,
+//     });
 
-    if (attendance) {
-      // Update existing attendance
-      attendance.meals = meals || attendance.meals;
-      attendance.isOnLeave = isOnLeave !== undefined ? isOnLeave : attendance.isOnLeave;
-      attendance.leaveReason = leaveReason || attendance.leaveReason;
-      attendance.leaveDescription = leaveDescription || attendance.leaveDescription;
+//     if (attendance) {
+//       // Update existing attendance
+//       attendance.meals = meals || attendance.meals;
+//       attendance.isOnLeave = isOnLeave !== undefined ? isOnLeave : attendance.isOnLeave;
+//       attendance.leaveReason = leaveReason || attendance.leaveReason;
+//       attendance.leaveDescription = leaveDescription || attendance.leaveDescription;
       
-      await attendance.save();
+//       await attendance.save();
 
-      return res.status(200).json({
-        success: true,
-        message: 'Attendance updated successfully',
-        data: attendance,
-      });
-    }
+//       return res.status(200).json({
+//         success: true,
+//         message: 'Attendance updated successfully',
+//         data: attendance,
+//       });
+//     }
 
-    // Create new attendance
-    attendance = await Attendance.create({
-      studentId,
-      messId,
-      date: attendanceDate,
-      meals: meals || [],
-      isOnLeave: isOnLeave || false,
-      leaveReason,
-      leaveDescription,
-    });
+//     // Create new attendance
+//     attendance = await Attendance.create({
+//       studentId,
+//       messId,
+//       date: attendanceDate,
+//       meals: meals || [],
+//       isOnLeave: isOnLeave || false,
+//       leaveReason,
+//       leaveDescription,
+//     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Attendance marked successfully',
-      data: attendance,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while marking attendance',
-      error: error.message,
-    });
-  }
-};
+//     res.status(201).json({
+//       success: true,
+//       message: 'Attendance marked successfully',
+//       data: attendance,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error while marking attendance',
+//       error: error.message,
+//     });
+//   }
+// };
 
 // @desc    Register leave for multiple days
 // @route   POST /api/attendance/leave
 // @access  Private (Student)
+
+// ======================
+// Register Leave
+// ======================
 export const registerLeave = async (req, res) => {
   try {
     const { startDate, endDate, reason, description } = req.body;
     const studentId = req.user._id;
     const messId = req.user.messId;
 
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (end < start) {
-      return res.status(400).json({
-        success: false,
-        message: 'End date must be after start date',
-      });
-    }
+    // Basic date validations
+    if (end < start)
+      return res.status(400).json({ success: false, message: "End date must be after start date" });
 
-    // Don't allow leave registration for past dates
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    if (start < today) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot register leave for past dates',
-      });
-    }
+    if (start < today)
+      return res.status(400).json({ success: false, message: "Cannot register leave for past dates" });
 
+    // 👇 Will throw if overlaps/duplicates exist
     const attendanceRecords = await Attendance.registerLeave(
       studentId,
       messId,
@@ -104,18 +99,67 @@ export const registerLeave = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Leave registered successfully for ${attendanceRecords.length} days`,
+      message: `Leave registered successfully for ${attendanceRecords.length} days.`,
       data: attendanceRecords,
     });
+  } catch (err) {
+    console.error("Leave registration error:", err.message);
+    res.status(400).json({
+      success: false,
+      message: err.message || "Failed to register leave",
+    });
+  }
+};
+
+
+
+// ======================
+// Mark Attendance
+// ======================
+export const markAttendance = async (req, res) => {
+  try {
+    const { date, meals, isOnLeave } = req.body;
+    const studentId = req.user._id;
+    const messId = req.user.messId;
+
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0);
+
+    const attendance = await Attendance.findOne({ studentId, date: attendanceDate });
+
+    // Disallow marking attendance during leave
+    if (attendance && attendance.isOnLeave) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot mark attendance for a date that is marked as leave.',
+      });
+    }
+
+    if (attendance) {
+      attendance.meals = meals || attendance.meals;
+      attendance.isOnLeave = isOnLeave ?? attendance.isOnLeave;
+      await attendance.save();
+      return res.status(200).json({ success: true, message: 'Attendance updated', data: attendance });
+    }
+
+    const newRecord = await Attendance.create({
+      studentId,
+      messId,
+      date: attendanceDate,
+      meals: meals || [],
+      isOnLeave: isOnLeave || false,
+    });
+
+    res.status(201).json({ success: true, message: 'Attendance marked', data: newRecord });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       success: false,
-      message: 'Server error while registering leave',
+      message: 'Server error while marking attendance',
       error: error.message,
     });
   }
 };
+
 
 // @desc    Get my attendance for date range
 // @route   GET /api/attendance/my-attendance
@@ -367,17 +411,33 @@ export const cancelLeave = async (req, res) => {
       });
     }
 
-    attendance.isOnLeave = false;
-    attendance.leaveReason = undefined;
-    attendance.leaveDescription = undefined;
-    attendance.status = 'cancelled';
-    
-    await attendance.save();
+    // Only allow cancelling upcoming leaves (not past dates)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const attDate = new Date(attendance.date);
+    attDate.setHours(0, 0, 0, 0);
+
+    if (attDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel a leave in the past',
+      });
+    }
+
+    // Ensure this record is a leave
+    if (!attendance.isOnLeave) {
+      return res.status(400).json({
+        success: false,
+        message: 'This attendance record is not marked as leave',
+      });
+    }
+
+    // Delete the attendance document (remove leave entry)
+    await attendance.deleteOne();
 
     res.status(200).json({
       success: true,
-      message: 'Leave cancelled successfully',
-      data: attendance,
+      message: 'Leave cancelled and record removed successfully',
     });
   } catch (error) {
     console.error(error);

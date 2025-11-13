@@ -13,7 +13,7 @@ export default function Menu() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const messId = storedUser?.messId;
 
-  // 🧠 Format backend menu data into frontend display format
+  
   const formatMenu = (menuData) => {
     const formatted = {};
     menuData.dailyMenus.forEach((dayMenu) => {
@@ -27,7 +27,7 @@ export default function Menu() {
     return formatted;
   };
 
-  // 🟢 Fetch current week menu
+  //  Fetch current week menu
   useEffect(() => {
     const fetchMenu = async () => {
       try {
@@ -35,7 +35,7 @@ export default function Menu() {
 
         // Try current week menu
         const currentRes = await axios.get(
-          `http://localhost:5000/api/menu/current/${messId}`
+          `${import.meta.env.VITE_SERVER_URL}/api/menu/current/${messId}`
         );
 
         if (currentRes.data && currentRes.data.data) {
@@ -52,7 +52,7 @@ export default function Menu() {
         // If current not found, load previous week menu
         try {
           const prevRes = await axios.get(
-            `http://localhost:5000/api/menu/previous/${messId}`
+            `${import.meta.env.VITE_SERVER_URL}/api/menu/previous/${messId}`
           );
           const prevMenu = prevRes.data.data;
           setWeeklyMenu(formatMenu(prevMenu));
@@ -143,3 +143,5 @@ export default function Menu() {
     </div>
   );
 }
+
+

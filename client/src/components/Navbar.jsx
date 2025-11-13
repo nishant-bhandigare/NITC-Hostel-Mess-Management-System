@@ -2,7 +2,7 @@
 import React from "react";
 import { Menu } from "lucide-react";
 import Logo from "./Logo.jsx";
-import MyLogo from "../assets/logo.png"; // ✅ Import your logo here
+import MyLogo from "../assets/logo.png"; 
 
 export default function Navbar({ onOpenSidebar }) {
   return (
@@ -11,7 +11,7 @@ export default function Navbar({ onOpenSidebar }) {
         
         {/* Left Side: Logo + Title */}
         <div className="flex items-center gap-3">
-          <Logo src={MyLogo} size={40} alt="Mess Logo" />  {/* ✅ Proper Logo usage */}
+          <Logo src={MyLogo} size={40} alt="Mess Logo" />  
           <h1 className="text-lg font-semibold">NITC Mess</h1>
         </div>
 
@@ -27,3 +27,4 @@ export default function Navbar({ onOpenSidebar }) {
     </header>
   );
 }
+

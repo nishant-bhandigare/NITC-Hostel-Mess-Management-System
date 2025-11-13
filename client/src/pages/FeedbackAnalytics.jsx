@@ -24,7 +24,7 @@ export default function FeedbackAnalytics() {
         const today = new Date();
         
         const response = await axios.get(
-          `http://localhost:5000/api/feedback/statistics?month=${today.getMonth() + 1}&year=${today.getFullYear()}`,
+          `${import.meta.env.VITE_SERVER_URL}/api/feedback/statistics?month=${today.getMonth() + 1}&year=${today.getFullYear()}`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -49,7 +49,7 @@ export default function FeedbackAnalytics() {
       const token = localStorage.getItem("token");
       const today = new Date();
       const response = await axios.get(
-        `http://localhost:5000/api/feedback/mess?mealType=${mealType}&startDate=${new Date(today.getFullYear(), today.getMonth(), 1).toISOString()}&endDate=${new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString()}`,
+        `${import.meta.env.VITE_SERVER_URL}/api/feedback/mess?mealType=${mealType}&startDate=${new Date(today.getFullYear(), today.getMonth(), 1).toISOString()}&endDate=${new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString()}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -220,3 +220,6 @@ export default function FeedbackAnalytics() {
     </div>
   );
 }
+
+
+

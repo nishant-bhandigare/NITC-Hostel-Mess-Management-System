@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+const BASE = import.meta.env.VITE_SERVER_URL || "http://nitc-mess-frontend-flax.vercel.app";
 const API = `${BASE}/api/bills`;
 
 const authHeaders = () => ({
@@ -13,6 +13,31 @@ export const getMyBills = async (params = {}) => {
   const url = `${API}/my-bills${qs ? `?${qs}` : ""}`;
   return axios.get(url, authHeaders());
 };
+export const markBillsAsPaid = async (billIds) => {
+  return axios.put(`${API}/mark-paid`, { billIds }, authHeaders());
+};
+// Get total count of students in database
+
+export const getTotalStudentCount = async () => {
+  const token = localStorage.getItem("token");
+  return axios.get(
+    `${BASE}/api/bills/students-count`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+};
+
+// Get all bills stats (not filtered by mess) - all bills in database 
+export const getAllBillsStats = async () => {
+  const token = localStorage.getItem("token");
+  return axios.get(
+    `${BASE}/api/bills/stats-all`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+};
+
+
+
+
 
 // Admin: generate bills for all students (used by GenerateBills page)
 export const generateAllBills = async (payload) => {
@@ -24,4 +49,19 @@ export const getMessBills = async (messId, params = {}) => {
   const qs = new URLSearchParams(params).toString();
   const url = `${API}/mess/${messId}${qs ? `?${qs}` : ""}`;
   return axios.get(url, authHeaders());
+};
+
+// Get billing stats for admin dashboard
+export const getBillingStats = async (messId) => {
+  if (!messId) {
+    throw new Error('MessId is required for getting billing stats');
+  }
+  
+  // Get current month and year
+  const today = new Date();
+  const month = today.getMonth() + 1; // getMonth returns 0-11
+  const year = today.getFullYear();
+  
+  return axios.get(`${API}/summary/${messId}/${month}/${year}`, authHeaders());
+
 };

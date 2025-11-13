@@ -1,3 +1,4 @@
+// controllers/billController.js
 import Bill from '../models/Bill.js';
 import User from '../models/User.js';
 import Attendance from '../models/Attendance.js';
@@ -10,11 +11,185 @@ const DEFAULT_MEAL_RATES = {
   dinner: 50,
 };
 
-const DEFAULT_FIXED_CHARGES = 100; // Monthly fixed charges
+const DEFAULT_FIXED_CHARGES = 0; // Monthly fixed charges
+
+// Helper: round to nearest rupee and save only if changed
+async function ensureRoundedTotal(bill) {
+  if (!bill) return bill;
+  // If Mongoose doc or plain object: access .totalAmount
+  const current = bill.totalAmount;
+  if (current == null) return bill;
+
+  const rounded = Math.round(Number(current));
+  // If already a Mongoose doc, update & save only when changed
+  if (bill.isModified !== undefined) {
+    if (rounded !== current) {
+      bill.totalAmount = rounded;
+      await bill.save();
+    }
+    return bill;
+  } else {
+    // Plain object (not a doc) — optional: return rounded value
+    bill.totalAmount = rounded;
+    return bill;
+  }
+}
+
+
+// @desc    Get total count of all students
+// @route   GET /api/auth/students-count
+// @access  Private (Admin only)
+// @desc    Get total count of all bills with status breakdown
+// @route   GET /api/bills/stats-all
+// @access  Private (Admin only)
+// @desc    Get total count of all bills with status breakdown
+// @route   GET /api/bills/stats-all
+// @access  Private (Admin only)
+export const getAllBillsStats = async (req, res) => {
+  try {
+    // Accept optional month/year in params: /stats-all/:month/:year
+    const month = req.params?.month ? parseInt(req.params.month) : null;
+    const year = req.params?.year ? parseInt(req.params.year) : null;
+
+    const match = {
+      isActive: true,
+      isCancelled: false,
+    };
+
+    if (month && year) {
+      match.month = month;
+      match.year = year;
+    }
+
+    const result = await Bill.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: null,
+          totalBills: { $sum: 1 },
+          paidBills: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] },
+          },
+          unpaidBills: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'unpaid'] }, 1, 0] },
+          },
+          partiallyPaidBills: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'partially_paid'] }, 1, 0] },
+          },
+          overdueBills: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'overdue'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const stats = result.length > 0 ? result[0] : {
+      totalBills: 0,
+      paidBills: 0,
+      unpaidBills: 0,
+      partiallyPaidBills: 0,
+      overdueBills: 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error fetching all bills stats', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching bills stats',
+      error: error.message,
+    });
+  }
+};
+
+
+// @desc    Get total count of all students
+// @route   GET /api/auth/students-count
+// @access  Private (Admin only)
+export const getStudentsCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments({ role: 'student', isActive: true });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalStudents: count,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching students count',
+      error: error.message,
+    });
+  }
+};
 
 // @desc    Generate bill for a student
 // @route   POST /api/bills/generate
 // @access  Private (Admin only)
+export const markBillsAsPaid = async (req, res) => {
+  try {
+    const { billIds } = req.body;
+
+    if (!Array.isArray(billIds) || billIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No bills provided",
+      });
+    }
+
+    // Fetch bills that belong to this student
+    const bills = await Bill.find({
+      _id: { $in: billIds },
+      studentId: req.user._id,
+      isActive: true,
+      isCancelled: false,
+    });
+
+    if (bills.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No valid bills found for this user",
+      });
+    }
+
+    // Update each bill individually (so we can apply model logic)
+    for (const bill of bills) {
+      bill.amountPaid = bill.totalAmount;
+      bill.amountDue = 0;
+      bill.paymentStatus = "paid";
+      bill.paidDate = new Date();
+      bill.paymentHistory.push({
+        amount: bill.totalAmount,
+        paymentMethod: "upi",
+        transactionId: `manual-${Date.now()}`,
+        paymentStatus: "success",
+        remarks: "Student marked as paid via UPI self-confirmation",
+        receivedBy: req.user._id, // optional
+      });
+      await bill.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${bills.length} bills marked as paid successfully`,
+    });
+  } catch (error) {
+    console.error("❌ Error in markBillsAsPaid:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while marking bills as paid",
+      error: error.message,
+    });
+  }
+};
+
+
 export const generateBill = async (req, res) => {
   try {
     const { studentId, messId, month, year, mealRates, fixedCharges } = req.body;
@@ -32,7 +207,15 @@ export const generateBill = async (req, res) => {
       req.user._id
     );
 
+    // Reload populated bill and ensure rounding
     const populatedBill = await Bill.findById(bill._id).populate(
+      'studentId',
+      'name email registrationNumber hostelId'
+    );
+
+    await ensureRoundedTotal(populatedBill);
+
+    const finalBill = await Bill.findById(bill._id).populate(
       'studentId',
       'name email registrationNumber hostelId'
     );
@@ -40,7 +223,7 @@ export const generateBill = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Bill generated successfully',
-      data: populatedBill,
+      data: finalBill,
     });
   } catch (error) {
     console.error(error);
@@ -79,6 +262,11 @@ export const generateAllBills = async (req, res) => {
           fixed,
           req.user._id
         );
+
+        // Ensure rounding on the created bill
+        const doc = await Bill.findById(bill._id);
+        await ensureRoundedTotal(doc);
+
         generatedBills.push(bill);
       } catch (error) {
         errors.push({
@@ -111,6 +299,7 @@ export const generateAllBills = async (req, res) => {
 // @desc    Get my bills
 // @route   GET /api/bills/my-bills
 // @access  Private (Student)
+
 export const getMyBills = async (req, res) => {
   try {
     const { year, paymentStatus } = req.query;
@@ -394,6 +583,9 @@ export const applyDiscount = async (req, res) => {
     bill.applyDiscount(discountAmount, reason);
     await bill.save();
 
+    // ensure rounding after modifications
+    await ensureRoundedTotal(bill);
+
     res.status(200).json({
       success: true,
       message: 'Discount applied successfully',
@@ -427,6 +619,9 @@ export const applyLateFee = async (req, res) => {
 
     bill.applyLateFee(feeAmount, reason);
     await bill.save();
+
+    // ensure rounding after modifications
+    await ensureRoundedTotal(bill);
 
     res.status(200).json({
       success: true,
@@ -558,10 +753,17 @@ export const updateBill = async (req, res) => {
       });
     }
 
-    const updatedBill = await Bill.findByIdAndUpdate(req.params.id, req.body, {
+    let updatedBill = await Bill.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     }).populate('studentId', 'name registrationNumber');
+
+    // Ensure rounding after update (and save only if needed)
+    const doc = await Bill.findById(updatedBill._id);
+    await ensureRoundedTotal(doc);
+
+    // Re-populate after possible save
+    updatedBill = await Bill.findById(updatedBill._id).populate('studentId', 'name registrationNumber');
 
     res.status(200).json({
       success: true,

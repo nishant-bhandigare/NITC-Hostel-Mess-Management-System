@@ -150,7 +150,7 @@ export default function StudentDashboard(){
             actions={
               <div className="flex gap-3">
                 <OutlineButton onClick={() => navigate("/bills")}>View Bills</OutlineButton>
-                <PrimaryButton onClick={() => navigate("/pay-now")}>Pay Now</PrimaryButton>
+                <PrimaryButton onClick={() => navigate("/pay-pending")}>Pay Now</PrimaryButton>
               </div>
             }
           />

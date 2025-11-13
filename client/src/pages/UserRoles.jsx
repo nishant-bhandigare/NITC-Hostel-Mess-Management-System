@@ -1,33 +1,72 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar3.jsx";
+import axios from "axios";
 
 export default function UserRoles() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy Data (Replace with backend call later)
-  const [users, setUsers] = useState([
-    { id: 1, name: "Aarav Kumar", email: "aarav@nitc.edu", role: "Student" },
-    { id: 2, name: "Sneha Patil", email: "sneha@nitc.edu", role: "Student" },
-    { id: 3, name: "Riya Shah", email: "riya@nitc.edu", role: "Mess Manager" },
-    { id: 4, name: "Aditya Menon", email: "aditya@nitc.edu", role: "Hostel Admin" },
-  ]);
+  const roles = ["student", "manager", "admin"];
 
-  const roles = ["Student", "Mess Manager", "Hostel Admin"];
+  // Backend base URL
+  const BASE_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
 
+  // Fetch users on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get(`${BASE_URL}/api/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.data.success) {
+          setUsers(res.data.data || []);
+        } else {
+          alert("Failed to load users");
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        alert("Server error while fetching users");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Update user role locally
   const updateRole = (id, newRole) => {
     setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id ? { ...user, role: newRole } : user
-      )
+      prev.map((user) => (user._id === id ? { ...user, role: newRole } : user))
     );
   };
 
-  const saveChanges = () => {
-    // Later send to backend
-    console.log("Updated Roles:", users);
-    alert("✅ Roles updated successfully!");
+  // Save updated roles to backend
+  const saveChanges = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      for (const user of users) {
+        await axios.put(
+          `${BASE_URL}/api/users/${user._id}/role`,
+          { role: user.role },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      alert("✅ Roles updated successfully!");
+    } catch (err) {
+      console.error("Error updating roles:", err);
+      alert("Failed to update roles on server");
+    }
   };
+
+  if (loading)
+    return <p className="text-center py-10 text-neutral-600">Loading users...</p>;
 
   return (
     <div className="min-h-screen font-sans">
@@ -35,7 +74,6 @@ export default function UserRoles() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="container-narrow py-10">
-        {/* Header */}
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">User Roles & Permissions</h1>
           <p className="text-neutral-600 mt-1">
@@ -43,7 +81,6 @@ export default function UserRoles() {
           </p>
         </header>
 
-        {/* Users Table */}
         <section className="bg-white border border-neutral-200 shadow-sm rounded-xl p-6">
           <table className="w-full text-left">
             <thead>
@@ -55,18 +92,18 @@ export default function UserRoles() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-b last:border-none">
+                <tr key={user._id} className="border-b last:border-none">
                   <td className="py-3 font-medium">{user.name}</td>
                   <td className="py-3 text-neutral-700">{user.email}</td>
                   <td className="py-3">
                     <select
                       className="border border-neutral-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-600"
                       value={user.role}
-                      onChange={(e) => updateRole(user.id, e.target.value)}
+                      onChange={(e) => updateRole(user._id, e.target.value)}
                     >
                       {roles.map((role) => (
                         <option key={role} value={role}>
-                          {role}
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
                         </option>
                       ))}
                     </select>
