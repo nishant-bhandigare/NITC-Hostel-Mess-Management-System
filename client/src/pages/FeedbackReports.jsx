@@ -15,6 +15,7 @@ import {
 import axios from "axios";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function FeedbackAnalytics() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,9 +41,9 @@ export default function FeedbackAnalytics() {
         const [yearStr, monthStr] = month.split("-");
         const year = parseInt(yearStr, 10);
         const m = parseInt(monthStr, 10);
-
+        
         const response = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/api/feedback/statistics?month=${m}&year=${year}`,
+          `${API_BASE_URL}/api/feedback/statistics?month=${m}&year=${year}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setAnalytics(response.data.data);
@@ -74,7 +75,7 @@ export default function FeedbackAnalytics() {
         await Promise.all(
           mealTypes.map(async (meal) => {
             const res = await axios.get(
-              `${import.meta.env.VITE_SERVER_URL}/api/feedback/mess?mealType=${meal}&startDate=${start}&endDate=${end}`,
+              `${API_BASE_URL}/api/feedback/mess?mealType=${meal}&startDate=${start}&endDate=${end}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             results[meal] = res.data.data.filter((f) => f.comments?.trim());

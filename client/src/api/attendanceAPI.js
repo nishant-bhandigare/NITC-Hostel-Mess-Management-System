@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
-const API_URL = `${import.meta.env.VITE_SERVER_URL}/api/attendance`;
+const API_URL = `${API_BASE_URL}/api/attendance`;
 
 // Include JWT token from localStorage if you use login
 const getAuthHeaders = () => {

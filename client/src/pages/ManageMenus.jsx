@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar2.jsx";
 import PrimaryButton from "../components/PrimaryButton.jsx";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function ManageMenus() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,7 +37,7 @@ export default function ManageMenus() {
       try {
         setLoading(true);
         const res = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/api/menu/mess/${messId}`,
+          `${API_BASE_URL}/api/menu/mess/${messId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setMenus(res.data.data);
@@ -68,7 +69,7 @@ export default function ManageMenus() {
     const fetchPreviousMenu = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/api/menu/previous/${messId}`,
+          `${API_BASE_URL}/api/menu/previous/${messId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setWeeklyMenu(formatMenu(response.data.data));
@@ -135,13 +136,13 @@ export default function ManageMenus() {
 
       if (currentMenu && currentMenu.status === "draft") {
         await axios.put(
-          `${import.meta.env.VITE_SERVER_URL}/api/menu/${currentMenu._id}`,
+          `${API_BASE_URL}/api/menu/${currentMenu._id}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         alert("✅ Weekly menu updated!");
       } else {
-        await axios.post("${import.meta.env.VITE_SERVER_URL}/api/menu", payload, {
+        await axios.post(`${API_BASE_URL}/api/menu`, payload, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -165,7 +166,7 @@ export default function ManageMenus() {
   const handlePublish = async (menuId) => {
     try {
       await axios.put(
-        `${import.meta.env.VITE_SERVER_URL}/api/menu/${menuId}/publish`,
+        `${API_BASE_URL}/api/menu/${menuId}/publish`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -4,7 +4,8 @@ import Sidebar from "../components/Sidebar.jsx";
 import PrimaryButton from "../components/PrimaryButton.jsx";
 import OutlineButton from "../components/OutlineButton.jsx";
 import { Star } from "lucide-react";
-import axios from "axios"; // <-- added
+import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function Feedback() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -78,7 +79,6 @@ export default function Feedback() {
 
     setSubmitting(true);
     try {
-      const base = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
       const headers = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export default function Feedback() {
 
       const results = [];
       for (const p of payloads) {
-        const res = await axios.post(`${base}/api/feedback`, p, {
+        const res = await axios.post(`${API_BASE_URL}/api/feedback`, p, {
           headers,
           withCredentials: true,
         });

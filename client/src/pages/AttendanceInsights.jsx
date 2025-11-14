@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar2.jsx";
 import StatBadge from "../components/StatBadge.jsx";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 import {
   ResponsiveContainer,
   LineChart,
@@ -33,7 +34,7 @@ export default function AttendanceInsights() {
     totalLeaveDays: 0,
   });
 
-  const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+  const BASE = API_BASE_URL;
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("token");
   const messId = user?.messId;

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api.js";
 
 const NAV = [
   { icon: Home, label: "Dashboard", path: "/student" },
@@ -26,7 +27,7 @@ export default function Sidebar({ open, onClose }) {
     const token = localStorage.getItem("token");
     try {
       await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/logout`,
+        `${API_BASE_URL}/api/auth/logout`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

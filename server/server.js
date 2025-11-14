@@ -16,8 +16,29 @@ connectDB();
 
 const app = express();
 
+// CORS configuration - supports both local and production environments
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: "https://nitc-mess-frontend-flax.vercel.app", // your frontend URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      // In production, only allow specific origins
+      if (process.env.NODE_ENV === 'production') {
+        callback(new Error('Not allowed by CORS'));
+      } else {
+        // In development, allow all origins
+        callback(null, true);
+      }
+    }
+  },
   credentials: true, // allow cookies, authorization headers, etc.
 }));
 app.use(express.json());

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api.js";
 import loginImg from "../assets/login-illustration.png";
 import MyLogo from "../assets/logo.png";
 
@@ -28,7 +29,7 @@ export default function SignUp() {
     try {
       // ✅ Make POST request to backend API
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/register`,
+        `${API_BASE_URL}/api/auth/register`,
         form,
         { withCredentials: true } // include credentials if cookies are used
       );

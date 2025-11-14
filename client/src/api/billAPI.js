@@ -1,7 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
-const BASE = import.meta.env.VITE_SERVER_URL || "http://nitc-mess-frontend-flax.vercel.app";
-const API = `${BASE}/api/bills`;
+const API = `${API_BASE_URL}/api/bills`;
 
 const authHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },

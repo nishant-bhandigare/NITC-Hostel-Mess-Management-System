@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 import loginImg from "../assets/login-illustration.png";
 import MyLogo from "../assets/logo.png";
 
@@ -26,7 +27,7 @@ export default function SignIn() {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/login`,
+        `${API_BASE_URL}/api/auth/login`,
         {
           email: form.email,
           password: form.password,

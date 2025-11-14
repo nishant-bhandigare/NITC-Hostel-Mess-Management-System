@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar3.jsx";
 import PrimaryButton from "../components/PrimaryButton.jsx";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function GenerateBills() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -65,8 +66,9 @@ export default function GenerateBills() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      
       const res = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/api/bills/generate-all`,
+        `${API_BASE_URL}/api/bills/generate-all`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

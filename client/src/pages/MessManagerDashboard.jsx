@@ -7,6 +7,7 @@ import PrimaryButton from "../components/PrimaryButton.jsx";
 import OutlineButton from "../components/OutlineButton.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
 import { 
   Utensils, 
@@ -28,7 +29,7 @@ export default function MessManagerDashboard() {
     useEffect(() => {
       const loadStats = async () => {
         try {
-          const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+          const BASE = API_BASE_URL;
           const token = localStorage.getItem("token");
           const user = JSON.parse(localStorage.getItem("user") || "{}");
           const messId = user?.messId;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function Menu() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,7 +36,7 @@ export default function Menu() {
 
         // Try current week menu
         const currentRes = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/api/menu/current/${messId}`
+          `${API_BASE_URL}/api/menu/current/${messId}`
         );
 
         if (currentRes.data && currentRes.data.data) {
@@ -52,7 +53,7 @@ export default function Menu() {
         // If current not found, load previous week menu
         try {
           const prevRes = await axios.get(
-            `${import.meta.env.VITE_SERVER_URL}/api/menu/previous/${messId}`
+            `${API_BASE_URL}/api/menu/previous/${messId}`
           );
           const prevMenu = prevRes.data.data;
           setWeeklyMenu(formatMenu(prevMenu));

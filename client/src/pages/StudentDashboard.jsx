@@ -9,6 +9,7 @@ import { Utensils, Star, ClipboardList, ReceiptIndianRupee } from "lucide-react"
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getMyBills } from "../api/billAPI.js";
+import { API_BASE_URL } from "../config/api.js";
 
 
 export default function StudentDashboard(){
@@ -25,7 +26,7 @@ export default function StudentDashboard(){
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+        const BASE = API_BASE_URL;
         const token = localStorage.getItem("token");
         const user = JSON.parse(localStorage.getItem("user") || "{}");
         const today = new Date();

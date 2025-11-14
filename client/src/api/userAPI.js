@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/api.js";
 
-const BASE_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+const BASE_URL = API_BASE_URL;
 
 export const getStudentCount = async (messId) => {
   const token = localStorage.getItem("token");

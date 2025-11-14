@@ -18,6 +18,7 @@ import {
 import axios from "axios";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { API_BASE_URL } from "../config/api.js";
 
 export default function SystemReports() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function SystemReports() {
   // Feedback / ratings for selected month
   const [mealRatings, setMealRatings] = useState([]); // [{ _id: 'breakfast', avgRating, count }]
 
-  const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+  const BASE = API_BASE_URL;
   const token = localStorage.getItem("token");
   const headers = { headers: { Authorization: `Bearer ${token}` } };
 
