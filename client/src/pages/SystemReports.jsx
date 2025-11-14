@@ -40,7 +40,7 @@ export default function SystemReports() {
     overdueBills: 0,
   });
 
-  // Feedback / ratings for selected month
+  // Feedback ratings for selected month
   const [mealRatings, setMealRatings] = useState([]); // [{ _id: 'breakfast', avgRating, count }]
 
   const BASE = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
@@ -270,3 +270,4 @@ export default function SystemReports() {
     </div>
   );
 }
+
