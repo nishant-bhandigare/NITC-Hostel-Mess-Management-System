@@ -9,7 +9,7 @@ This project was developed as part of **CS6103E – Software Systems Lab** by **
 ---
 
 ## 👥 Team 19
-- **Nishant Tanaji Bhandigare - M250923CS**  
+- **Nishant Tanaji Bhandigare - M250923CS (Team Lead)**  
 - **Sikta Roy - M251045CS**  
 - **Vengidesan K - M251103CS**
 
